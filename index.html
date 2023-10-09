@@ -117,6 +117,19 @@
 
         const loginContent = document.querySelector('main').innerHTML;
 
+        function checkTokenExpiration() {
+            const jwt = localStorage.getItem('jwt');
+            if (isTokenExpired(jwt)) {
+                console.log('Token expired. Redirecting to login page.');
+                localStorage.removeItem('jwt'); 
+                history.pushState(null, null, '/');
+                window.location.reload();
+            }
+        }
+
+        // Check token expiration every 3 minutes (180000 milliseconds)
+        window.setInterval(checkTokenExpiration, 180000);
+
     </script>
 
 </body>
