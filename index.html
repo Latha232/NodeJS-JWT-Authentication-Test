@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
+        integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js"
+        integrity="sha512-emSwuKiMyYedRwflbZB2ghzX8Cw8fmNVgZ6yQNNXXagFzFOaQmbvQ1vmDkddHjm5AITcBIZfC7k4ShQSjgPAmQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+<body>
+
+    <div class="container-fluid">
+
+        <h1 class="row">Login</h1>
+
+        <main>
+            <div class="row">
+                <label for="username">Username</label>
+                <input type="text" name="username" id="username" autocomplete="username">
+            </div>
+
+            <div class="row">
+                <label for="password">password</label>
+                <input type="password" name="password" id="password" autocomplete="current-password">
+            </div>
+
+            <div>
+                <button onclick="login()">Login</button>
+                <button onclick="navigateTo('dashboard')">Get Dashboard</button>
+                <button onclick="navigateTo('settings')">Get Settings</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function navigateTo(route) {
+            history.pushState({}, '', route);
+            switchRoute(route);
+        }
+
+        function switchRoute(route) {
+            switch (route) {
+                case 'login':
+                    document.querySelector('h1.row').innerHTML = 'Login';
+                    document.querySelector('main').innerHTML = loginContent;
+                    break;
+                case 'dashboard':
+                    document.querySelector('h1.row').innerHTML = 'Dashboard';
+                    axios.get('/api/dashboard', {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+                        }
+                    }).then(res => {
+                        if (res && res.data && res.data.success) {
+                            document.querySelector('main').innerHTML = res.data.myContent;
+                        }
+                    });
+                    break;
+                case 'settings':
+                    document.querySelector('h1.row').innerHTML = 'Settings';
+                    axios.get('/api/settings', {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+                        }
+                    }).then(res => {
+                        if (res && res.data && res.data.success) {
+                            document.querySelector('main').innerHTML = res.data.myContent;
+                        }
+                    });
+                    break;
+            }
+        }
+
+        window.onpopstate = function(event) {
+            switchRoute(window.location.pathname.substring(1));
+        };
+
+        function login() {
+            const data = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+            };
+            axios.post('/api/login', data)
+                .then(res => {
+                    console.log(res);
+                    document.getElementById('username').value = '';
+                    document.getElementById('password').value = '';
+                    if (res && res.data && res.data.success) {
+                        const token = res.data.token;
+                        localStorage.setItem('jwt', token);
+                        navigateTo('dashboard');
+                    }
+                });
+        }
+
+        function isTokenExpired(token) {
+            const decodedToken = JSON.parse(atob(token.split('.')[1]));
+            const expirationTime = decodedToken.exp * 1000; 
+            const currentTime = Date.now();
+
+            return expirationTime < currentTime;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('jwt');
+
+            if (token && isTokenExpired(token)) {
+                localStorage.removeItem('jwt'); 
+                window.location.href = '/'; 
+            }
+        });
+
+        const loginContent = document.querySelector('main').innerHTML;
+
+    </script>
+
+</body>
+
+</html>
